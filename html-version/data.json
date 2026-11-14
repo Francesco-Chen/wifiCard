@@ -1,0 +1,34 @@
+[
+  {
+    "id": "1",
+    "ssid": "Home-Network-5G",
+    "password": "SuperSecretPass123",
+    "type": "WPA",
+    "label": "Living Room",
+    "color": "indigo"
+  },
+  {
+    "id": "2",
+    "ssid": "Office-FastWiFi",
+    "password": "WorkHardPlayHard!",
+    "type": "WPA",
+    "label": "Office 2F",
+    "color": "#0ea5e9"
+  },
+  {
+    "id": "3",
+    "ssid": "CoffeeShop-Guest",
+    "password": "freecoffee2026",
+    "type": "WPA",
+    "label": "Guest WiFi",
+    "color": "#f59e0b"
+  },
+  {
+    "id": "4",
+    "ssid": "Studio-Creative",
+    "password": "DesignYourFuture!",
+    "type": "WPA",
+    "label": "Studio Hub",
+    "color": "#10b981"
+  }
+]

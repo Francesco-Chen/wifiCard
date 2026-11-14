@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>WiFi Connection Cards</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f0f4f8;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --muted: #94a3b8;
+            --text: #1e293b;
+            --transition: .38s cubic-bezier(.4, 0, .2, 1);
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            touch-action: pan-y;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans SC', sans-serif;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100dvh;
+            transition: background var(--transition);
+        }
+
+        /* ── Top bar ── */
+        .topbar {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: max(env(safe-area-inset-top, 0px), 14px) 20px 12px;
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            background: rgba(240,244,248,.88);
+            border-bottom: 1px solid rgba(0,0,0,.06);
+        }
+        .topbar-title {
+            font-family: 'Space Mono', monospace;
+            font-size: .85rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .topbar-hint {
+            font-size: .72rem;
+            color: var(--muted);
+        }
+        .topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-print-top {
+            font-size: .75rem;
+            font-family: 'Space Mono', monospace;
+            color: var(--text);
+            padding: .35rem .85rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface);
+            cursor: pointer;
+            transition: background .15s, border-color .15s;
+            display: inline-flex;
+            align-items: center;
+            font-weight: 700;
+        }
+        .btn-print-top:hover { background: var(--border); }
+        .admin-link {
+            font-size: .75rem;
+            font-family: 'Space Mono', monospace;
+            color: var(--text);
+            text-decoration: none;
+            padding: .35rem .85rem;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface);
+            transition: background .15s;
+            font-weight: 700;
+        }
+        .admin-link:hover { background: var(--border); }
+
+        /* ── Carousel viewport ── */
+        .carousel-viewport {
+            width: 100%;
+            overflow: hidden;
+            flex: 1;
+            display: flex;
+        }
+
+        .carousel-track {
+            display: flex;
+            align-items: stretch;
+            transition: transform var(--transition);
+            will-change: transform;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* ── Slide ── */
+        .slide {
+            flex-shrink: 0;
+            width: 100vw;
+            display: flex;
+            flex-direction: column;
+            padding: 0 24px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            transition: opacity .32s, transform .32s;
+            -webkit-overflow-scrolling: touch;
+        }
+        .slide::before {
+            content: "";
+            margin-top: auto;
+            min-height: 84px;
+            flex-shrink: 0;
+        }
+        .slide::after {
+            content: "";
+            margin-bottom: auto;
+            min-height: 96px;
+            flex-shrink: 0;
+        }
+        .slide:not(.active) { opacity: .45; transform: scale(.93); }
+        .slide.active       { opacity: 1;   transform: scale(1); }
+
+        /* ── Card ── */
+        .wifi-card {
+            background: var(--surface);
+            border-radius: 28px;
+            overflow: hidden;
+            box-shadow:
+                0 2px 8px rgba(0,0,0,.06),
+                0 16px 48px rgba(0,0,0,.14),
+                0 0 0 1px rgba(0,0,0,.04);
+            width: 100%;
+            max-width: 380px;
+            margin: 0 auto;
+            flex-shrink: 0;
+        }
+
+        .card-header {
+            padding: 28px 28px 22px;
+            color: #fff;
+            position: relative;
+            overflow: hidden;
+        }
+        .card-header .blob {
+            position: absolute;
+            border-radius: 50%;
+            opacity: .28;
+            pointer-events: none;
+        }
+        .card-header .blob1 { width: 150px; height: 150px; top: -50px; right: -40px; }
+        .card-header .blob2 { width: 90px;  height: 90px;  bottom: -30px; left: -20px; }
+        .card-header .inner { position: relative; z-index: 1; }
+        .card-header .wifi-icon {
+            width: 52px; height: 52px;
+            border-radius: 15px;
+            background: rgba(255,255,255,.22);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 14px;
+        }
+        .card-header .net-label {
+            font-size: .7rem;
+            opacity: .75;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+            font-weight: 700;
+        }
+        .card-header h2 {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.15rem;
+            font-weight: 700;
+            word-break: break-all;
+        }
+
+        /* QR */
+        .card-body { padding: 20px 20px 16px; }
+        .qr-wrap { display: flex; justify-content: center; margin-bottom: 18px; }
+        .qr-frame {
+            padding: 10px;
+            background: #f8fafc;
+            border: 2px dashed var(--border);
+            border-radius: 18px;
+        }
+        .qr-frame img {
+            display: block;
+            width: 180px; height: 180px;
+            border-radius: 10px;
+        }
+
+        /* Fields */
+        .field { margin-bottom: 12px; }
+        .field label {
+            display: block;
+            font-size: .68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .09em;
+            color: var(--muted);
+            margin-bottom: 5px;
+        }
+        .field-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 11px 14px;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+        .field-val {
+            font-family: 'Space Mono', monospace;
+            font-size: .9rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: .04em;
+            word-break: break-all;
+        }
+        .copy-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 6px 8px;
+            border-radius: 8px;
+            color: var(--muted);
+            font-size: 1rem;
+            transition: background .15s, color .15s;
+            flex-shrink: 0;
+            margin-left: 8px;
+        }
+        .copy-btn:hover { background: #e2e8f0; color: var(--text); }
+        .type-badge { font-size: .7rem; color: var(--muted); margin-top: 4px; font-weight: 500; }
+
+        /* Card footer */
+        .card-footer {
+            padding: 12px 20px;
+            background: #f8fafc;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+        }
+        .btn-share {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: .88rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity .15s;
+        }
+        .btn-share:hover { opacity: .8; }
+        .btn-print-card {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: var(--surface);
+            color: var(--text);
+            font-size: .88rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .15s, border-color .15s;
+            white-space: nowrap;
+        }
+        .btn-print-card:hover { background: #e2e8f0; }
+        .btn-print-card svg { color: var(--muted); }
+        .btn-print-card:hover svg { color: var(--text); }
+        #tentPrintArea { display: none; }
+
+        /* ── Bottom nav ── */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 14px 24px max(env(safe-area-inset-bottom, 0px), 14px);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            background: rgba(240,244,248,.88);
+            border-top: 1px solid rgba(0,0,0,.06);
+        }
+        .nav-arrow {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background .15s, opacity .2s;
+            color: var(--text);
+            line-height: 1;
+        }
+        .nav-arrow:disabled { opacity: .22; cursor: default; }
+        .nav-arrow:not(:disabled):hover { background: var(--border); }
+
+        .dots { display: flex; align-items: center; gap: 7px; }
+        .dot {
+            height: 7px; width: 7px;
+            border-radius: 99px;
+            background: var(--muted);
+            opacity: .35;
+            cursor: pointer;
+            transition: width .28s ease, opacity .28s, background .28s;
+        }
+        .dot.active { width: 22px; opacity: 1; }
+
+        .counter {
+            font-family: 'Space Mono', monospace;
+            font-size: .72rem;
+            color: var(--muted);
+            min-width: 40px;
+            text-align: center;
+        }
+
+        /* ── Empty ── */
+        .empty-state { text-align: center; padding: 3rem 2rem; color: var(--muted); }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+        .empty-state h2 { color: var(--text); font-size: 1.2rem; margin-bottom: .5rem; }
+
+        /* ── Toast ── */
+        #toast {
+            position: fixed;
+            bottom: 80px; left: 50%;
+            transform: translateX(-50%) translateY(16px);
+            background: #1e293b;
+            color: #fff;
+            padding: .6rem 1.3rem;
+            border-radius: 999px;
+            font-size: .82rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .28s, transform .28s;
+            z-index: 999;
+            white-space: nowrap;
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* ── Landscape Mobile ── */
+        @media (max-width: 950px) and (orientation: landscape) {
+            .slide::before { min-height: 50px; }
+            .slide::after { min-height: 60px; }
+            .wifi-card {
+                max-width: 640px;
+                display: grid;
+                grid-template-columns: 180px 1fr;
+                grid-template-rows: 1fr auto;
+            }
+            .card-header {
+                grid-column: 1; grid-row: 1 / 3;
+                display: flex; flex-direction: column; justify-content: center;
+                padding: 20px;
+            }
+            .card-header .blob1 { width: 110px; height: 110px; top: -30px; right: -30px; }
+            .card-header .blob2 { width: 70px; height: 70px; bottom: -20px; left: -10px; }
+            .card-header .wifi-icon { margin-bottom: 8px; width: 42px; height: 42px; font-size: 1.2rem; }
+            
+            .card-body {
+                grid-column: 2; grid-row: 1;
+                padding: 16px;
+                display: flex; align-items: center; gap: 16px;
+            }
+            .qr-wrap { margin-bottom: 0; flex-shrink: 0; }
+            .qr-frame img { width: 110px; height: 110px; }
+            .fields-wrap { flex: 1; min-width: 0; }
+            .field { margin-bottom: 8px; }
+            .field-row { padding: 8px 12px; }
+            .field label { margin-bottom: 3px; font-size: .65rem; }
+            .field-val { font-size: .85rem; }
+            
+            .card-footer {
+                grid-column: 2; grid-row: 2;
+                padding: 12px 16px;
+                border-top: 1px solid var(--border);
+            }
+            .btn-share { padding: 9px 10px; font-size: .85rem; }
+            .btn-print-card { padding: 9px 10px; font-size: .85rem; }
+        }
+
+        /* ── Print Modal ── */
+        .print-modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, .48);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            animation: fadeInModal .2s ease-out;
+        }
+        @keyframes fadeInModal {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .print-modal {
+            background: var(--surface);
+            border-radius: 20px;
+            width: 100%;
+            max-width: 460px;
+            box-shadow: 0 20px 45px rgba(0,0,0,.15), 0 0 0 1px rgba(0,0,0,.05);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            animation: modalSlideUp .25s cubic-bezier(.16, 1, .3, 1);
+        }
+        @keyframes modalSlideUp {
+            from { transform: translateY(16px) scale(.98); opacity: 0; }
+            to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        .print-modal-header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+        }
+        .print-modal-header h3 {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 1.4rem;
+            line-height: 1;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: background .15s, color .15s;
+        }
+        .modal-close-btn:hover { background: #f1f5f9; color: var(--text); }
+        .print-modal-body {
+            padding: 18px 20px;
+            max-height: calc(85vh - 120px);
+            overflow-y: auto;
+        }
+        .modal-section { margin-bottom: 16px; }
+        .modal-section:last-child { margin-bottom: 0; }
+        .modal-section-title {
+            display: block;
+            font-size: .72rem;
+            font-weight: 700;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            margin-bottom: 8px;
+        }
+        .option-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+        .option-grid.three-col {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        .option-card {
+            position: relative;
+            display: block;
+            cursor: pointer;
+        }
+        .option-card input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .option-content {
+            padding: 10px 12px;
+            background: #f8fafc;
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            transition: all .15s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            height: 100%;
+        }
+        .option-card input[type="radio"]:checked + .option-content {
+            border-color: #4f46e5;
+            background: #eef2ff;
+        }
+        .option-card.disabled {
+            opacity: .45;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        .option-title {
+            font-size: .82rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+        .option-card input[type="radio"]:checked + .option-content .option-title {
+            color: #4338ca;
+        }
+        .option-desc {
+            font-size: .68rem;
+            color: var(--muted);
+            line-height: 1.3;
+        }
+        .option-card input[type="radio"]:checked + .option-content .option-desc {
+            color: #6366f1;
+        }
+        .checkbox-row { margin-bottom: 8px; }
+        .custom-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            cursor: pointer;
+            font-size: .82rem;
+            color: var(--text);
+        }
+        .custom-checkbox input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: #4f46e5;
+            cursor: pointer;
+        }
+        .print-modal-footer {
+            padding: 12px 20px;
+            background: #f8fafc;
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .btn-modal-cancel {
+            padding: 8px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--text);
+            font-size: .85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .15s;
+        }
+        .btn-modal-cancel:hover { background: #f1f5f9; }
+        .btn-modal-print {
+            padding: 8px 18px;
+            border-radius: 10px;
+            border: none;
+            background: #4f46e5;
+            color: #fff;
+            font-size: .85rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            transition: background .15s;
+        }
+        .btn-modal-print:hover { background: #4338ca; }
+
+        @media (max-width: 480px) {
+            .option-grid.three-col { grid-template-columns: 1fr; }
+            .option-grid { grid-template-columns: 1fr; }
+        }
+
+        /* ── Print Stylesheet ── */
+        @page {
+            size: A4 portrait;
+            margin: 0;
+        }
+
+        @media print {
+            * {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                box-shadow: none !important;
+                text-shadow: none !important;
+            }
+
+            html, body {
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 100vh !important;
+                background: #ffffff !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                overflow: visible !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+
+            body::before, body::after,
+            .slide::before, .slide::after {
+                display: none !important;
+                content: none !important;
+            }
+
+            .topbar, .bottom-nav, .copy-btn, .btn-share, .btn-print-card, .card-footer, #toast, .print-modal-overlay {
+                display: none !important;
+            }
+
+            .carousel-viewport {
+                padding: 0 !important;
+                overflow: visible !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 100vh !important;
+            }
+
+            .carousel-track {
+                transform: none !important;
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 100vh !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+
+            .slide {
+                display: none !important;
+                width: 100% !important;
+                height: 100vh !important;
+                min-height: 100vh !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-sizing: border-box !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            /* Default and current scope: print active card centered */
+            .slide.active {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                opacity: 1 !important;
+                transform: none !important;
+            }
+
+            /* Print all slides page-by-page centered */
+            body.print-scope-all:not(.print-layout-grid):not(.print-layout-tent) .slide {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                opacity: 1 !important;
+                transform: none !important;
+                min-height: 100vh !important;
+                height: 100vh !important;
+                page-break-after: always !important;
+                break-after: page !important;
+            }
+            body.print-scope-all:not(.print-layout-grid):not(.print-layout-tent) .slide:last-child {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+
+            /* Card styling in print */
+            .wifi-card {
+                width: 360px !important;
+                max-width: 90% !important;
+                margin: auto !important;
+                box-shadow: none !important;
+                border: 1.5px solid #cbd5e1 !important;
+                border-radius: 20px !important;
+                overflow: hidden !important;
+                background: #ffffff !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                position: relative !important;
+                display: block !important;
+                grid-template-columns: none !important;
+                grid-template-rows: none !important;
+            }
+
+            .card-header, .card-body {
+                grid-column: auto !important;
+                grid-row: auto !important;
+            }
+
+            .card-header {
+                padding: 24px 26px 20px !important;
+            }
+            .card-header .wifi-icon {
+                width: 44px !important;
+                height: 44px !important;
+                font-size: 1.3rem !important;
+                margin-bottom: 8px !important;
+            }
+            .card-header h2 {
+                font-size: 1.15rem !important;
+                line-height: 1.3 !important;
+            }
+
+            .card-body {
+                padding: 24px 24px 22px !important;
+                display: block !important;
+            }
+
+            .qr-wrap {
+                display: flex !important;
+                justify-content: center !important;
+                margin-bottom: 16px !important;
+            }
+            .qr-frame {
+                padding: 10px !important;
+                background: #f8fafc !important;
+                border: 1.5px dashed #cbd5e1 !important;
+                border-radius: 16px !important;
+            }
+            .qr-frame img {
+                width: 170px !important;
+                height: 170px !important;
+                image-rendering: -webkit-optimize-contrast;
+                image-rendering: crisp-edges;
+            }
+
+            .field {
+                margin-bottom: 10px !important;
+            }
+            .field label {
+                font-size: .68rem !important;
+                font-weight: 700 !important;
+                color: #64748b !important;
+                margin-bottom: 4px !important;
+            }
+            .field-row {
+                padding: 8px 12px !important;
+                background: #f8fafc !important;
+                border: 1px solid #e2e8f0 !important;
+                border-radius: 10px !important;
+            }
+            .field-val {
+                font-size: .95rem !important;
+                color: #0f172a !important;
+                font-weight: 700 !important;
+            }
+            .type-badge {
+                font-size: .72rem !important;
+                color: #64748b !important;
+                margin-top: 4px !important;
+            }
+
+            .card-footer {
+                display: none !important;
+            }
+
+            /* ── Grid Mode (A4 Sheet Grid) ── */
+            body.print-layout-grid .carousel-viewport,
+            body.print-layout-grid .carousel-track {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-height: 100vh !important;
+                height: 100vh !important;
+            }
+            body.print-layout-grid .carousel-track {
+                display: grid !important;
+                grid-template-columns: repeat(2, 1fr) !important;
+                align-content: center !important;
+                justify-content: center !important;
+                gap: 8mm 6mm !important;
+                width: 100% !important;
+                max-width: 190mm !important;
+                margin: auto !important;
+                padding: 0 !important;
+            }
+            body.print-layout-grid .slide {
+                display: flex !important;
+                width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
+                page-break-after: auto !important;
+                break-after: auto !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                margin: 0 !important;
+            }
+            body.print-layout-grid .wifi-card {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                border-radius: 14px !important;
+            }
+            body.print-layout-grid .card-header {
+                padding: 14px 16px 10px !important;
+            }
+            body.print-layout-grid .card-header .wifi-icon {
+                width: 34px !important;
+                height: 34px !important;
+                font-size: 1rem !important;
+                margin-bottom: 6px !important;
+            }
+            body.print-layout-grid .card-header h2 {
+                font-size: 1rem !important;
+            }
+            body.print-layout-grid .card-body {
+                padding: 12px 14px 12px !important;
+            }
+            body.print-layout-grid .qr-frame {
+                padding: 6px !important;
+            }
+            body.print-layout-grid .qr-frame img {
+                width: 125px !important;
+                height: 125px !important;
+            }
+            body.print-layout-grid .qr-wrap {
+                margin-bottom: 8px !important;
+            }
+            body.print-layout-grid .field {
+                margin-bottom: 6px !important;
+            }
+            body.print-layout-grid .field-row {
+                padding: 5px 8px !important;
+            }
+            body.print-layout-grid .field-val {
+                font-size: .82rem !important;
+            }
+
+            /* ── Cut Guides ── */
+            body.show-cut-guides .wifi-card {
+                outline: 1.5px dashed #94a3b8 !important;
+                outline-offset: 4mm !important;
+            }
+            body.print-layout-grid.show-cut-guides .wifi-card {
+                outline-offset: 2mm !important;
+            }
+            body.show-cut-guides .wifi-card::before {
+                content: "✂ Cut along dashed line";
+                position: absolute;
+                top: -4.5mm;
+                right: 0;
+                font-size: 10px;
+                color: #64748b;
+                background: #ffffff;
+                padding: 0 4px;
+                line-height: 1;
+                font-family: sans-serif;
+            }
+
+            /* ── Black & White Ink Saver ── */
+            body.print-style-bw .card-header {
+                background: #ffffff !important;
+                color: #0f172a !important;
+                border-bottom: 2px solid #0f172a !important;
+            }
+            body.print-style-bw .card-header .blob {
+                display: none !important;
+            }
+            body.print-style-bw .card-header .wifi-icon {
+                background: #f1f5f9 !important;
+                color: #0f172a !important;
+                border: 1.5px solid #0f172a !important;
+            }
+            body.print-style-bw .card-header .net-label {
+                color: #475569 !important;
+                font-weight: 700 !important;
+            }
+            body.print-style-bw .card-header h2 {
+                color: #0f172a !important;
+            }
+            body.print-style-bw .wifi-card {
+                border: 2px solid #0f172a !important;
+            }
+
+            /* ── Tent Mode (Double-sided Tent) ── */
+            body.print-layout-tent .carousel-viewport {
+                display: none !important;
+            }
+            body.print-layout-tent #tentPrintArea {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 100% !important;
+                min-height: 100vh !important;
+                height: 100vh !important;
+                margin: 0 auto !important;
+            }
+            .tent-sheet {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 100% !important;
+                min-height: 100vh !important;
+                height: 100vh !important;
+                margin: 0 auto !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                page-break-after: always !important;
+                break-after: page !important;
+            }
+            .tent-sheet:last-child {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            .tent-card-top {
+                transform: rotate(180deg) !important;
+                margin-bottom: 4mm !important;
+            }
+            .tent-card-bottom {
+                margin-top: 4mm !important;
+            }
+            .tent-fold-divider {
+                width: 340px;
+                border-top: 1.5px dashed #64748b;
+                text-align: center;
+                position: relative;
+                margin: 6mm 0;
+            }
+            .tent-fold-divider span {
+                position: relative;
+                top: -8px;
+                background: #ffffff;
+                padding: 0 10px;
+                font-size: 10px;
+                color: #64748b;
+                font-family: 'Space Mono', sans-serif;
+            }
+            body.print-layout-tent .wifi-card {
+                width: 330px !important;
+                margin: 0 auto !important;
+            }
+            body.print-layout-tent .qr-frame img {
+                width: 125px !important;
+                height: 125px !important;
+            }
+            body.print-layout-tent .qr-wrap {
+                margin-bottom: 8px !important;
+            }
+            body.print-layout-tent .card-header {
+                padding: 14px 18px 10px !important;
+            }
+            body.print-layout-tent .card-body {
+                padding: 10px 16px 12px !important;
+            }
+            body.print-layout-tent .field {
+                margin-bottom: 6px !important;
+            }
+            body.print-layout-tent .field-row {
+                padding: 5px 8px !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+    <span class="topbar-title">&#128246; WiFi Cards</span>
+    <span class="topbar-hint" id="swipeHint" style="display:none">Swipe to navigate</span>
+    <div class="topbar-actions">
+        <button class="btn-print-top" onclick="openPrintModal()" title="Print WiFi Cards">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            Print
+        </button>
+        <a href="admin.php" class="admin-link">&#9881; Admin</a>
+    </div>
+</div>
+
+<!-- Carousel (filled by JS) -->
+<div class="carousel-viewport" id="viewport">
+    <div class="carousel-track" id="track"></div>
+</div>
+
+<!-- Bottom nav (filled by JS) -->
+<div class="bottom-nav" id="bottomNav" style="display:none">
+    <button class="nav-arrow" id="btnPrev" onclick="go(-1)" disabled>&#8249;</button>
+    <div class="dots" id="dots"></div>
+    <span class="counter" id="counter"></span>
+    <button class="nav-arrow" id="btnNext" onclick="go(1)">&#8250;</button>
+</div>
+
+<div id="toast">&#10003; Copied to clipboard</div>
+
+<!-- Tent print area (populated dynamically on print) -->
+<div id="tentPrintArea"></div>
+
+<!-- Print Settings Modal -->
+<div class="print-modal-overlay" id="printModal" style="display:none" onclick="if(event.target===this)closePrintModal()">
+    <div class="print-modal">
+        <div class="print-modal-header">
+            <h3>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-3px;color:#4f46e5"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                Print & Layout Settings
+            </h3>
+            <button class="modal-close-btn" onclick="closePrintModal()">&times;</button>
+        </div>
+        <div class="print-modal-body">
+            <!-- Print Scope -->
+            <div class="modal-section">
+                <label class="modal-section-title">Print Scope</label>
+                <div class="option-grid">
+                    <label class="option-card">
+                        <input type="radio" name="printScope" value="current" checked onchange="updatePrintModalState()">
+                        <div class="option-content">
+                            <span class="option-title">Current Card</span>
+                            <span class="option-desc" id="printCurrentName">Print active network only</span>
+                        </div>
+                    </label>
+                    <label class="option-card">
+                        <input type="radio" name="printScope" value="all" onchange="updatePrintModalState()">
+                        <div class="option-content">
+                            <span class="option-title">All Cards</span>
+                            <span class="option-desc" id="printAllCount">Batch print all networks</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Layout Style -->
+            <div class="modal-section">
+                <label class="modal-section-title">Layout Style</label>
+                <div class="option-grid three-col">
+                    <label class="option-card">
+                        <input type="radio" name="printLayout" value="standard" checked>
+                        <div class="option-content">
+                            <span class="option-title">Standard Card</span>
+                            <span class="option-desc">Centered portrait display</span>
+                        </div>
+                    </label>
+                    <label class="option-card" id="optLayoutGrid">
+                        <input type="radio" name="printLayout" value="grid">
+                        <div class="option-content">
+                            <span class="option-title">A4 Grid</span>
+                            <span class="option-desc">Compact multi-card sheet</span>
+                        </div>
+                    </label>
+                    <label class="option-card">
+                        <input type="radio" name="printLayout" value="tent">
+                        <div class="option-content">
+                            <span class="option-title">Desk Tent</span>
+                            <span class="option-desc">Foldable 2-sided stand</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Color Style -->
+            <div class="modal-section">
+                <label class="modal-section-title">Color Palette</label>
+                <div class="option-grid">
+                    <label class="option-card">
+                        <input type="radio" name="printStyle" value="color" checked>
+                        <div class="option-content">
+                            <span class="option-title">🎨 Full Color</span>
+                            <span class="option-desc">Vibrant gradients & accents</span>
+                        </div>
+                    </label>
+                    <label class="option-card">
+                        <input type="radio" name="printStyle" value="bw">
+                        <div class="option-content">
+                            <span class="option-title">🖨️ Ink-Saver B&W</span>
+                            <span class="option-desc">Clean monochrome outline</span>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Options -->
+            <div class="modal-section">
+                <label class="modal-section-title">Options</label>
+                <div class="checkbox-row">
+                    <label class="custom-checkbox">
+                        <input type="checkbox" id="chkCutGuides" checked>
+                        <span>Show dashed cutting guide (✂ Cut lines)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="print-modal-footer">
+            <button class="btn-modal-cancel" onclick="closePrintModal()">Cancel</button>
+            <button class="btn-modal-print" onclick="startPrint()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:6px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                Print Now
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+var COLOR_MAP = {
+    indigo:  { bg: '#4f46e5', light: '#6366f1', dark: '#3730a3' },
+    rose:    { bg: '#e11d48', light: '#fb7185', dark: '#9f1239' },
+    emerald: { bg: '#059669', light: '#34d399', dark: '#065f46' },
+    amber:   { bg: '#d97706', light: '#fbbf24', dark: '#92400e' },
+    sky:     { bg: '#0284c7', light: '#38bdf8', dark: '#075985' },
+    violet:  { bg: '#7c3aed', light: '#a78bfa', dark: '#4c1d95' },
+    fuchsia: { bg: '#c026d3', light: '#d946ef', dark: '#86198f' },
+    teal:    { bg: '#0d9488', light: '#14b8a6', dark: '#115e59' },
+    orange:  { bg: '#ea580c', light: '#f97316', dark: '#9a3412' },
+    cyan:    { bg: '#0891b2', light: '#06b6d4', dark: '#155e75' },
+    slate:   { bg: '#475569', light: '#64748b', dark: '#1e293b' },
+    pink:    { bg: '#db2777', light: '#f43f5e', dark: '#9d174d' }
+};
+
+function esc(str) {
+    return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
+        .replace(/'/g,'&#39;');
+}
+function jsEsc(str) {
+    return String(str).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+function hexToHSL(H) {
+    let r = 0, g = 0, b = 0;
+    if (H.length == 4) {
+      r = "0x" + H[1] + H[1];
+      g = "0x" + H[2] + H[2];
+      b = "0x" + H[3] + H[3];
+    } else if (H.length == 7) {
+      r = "0x" + H[1] + H[2];
+      g = "0x" + H[3] + H[4];
+      b = "0x" + H[5] + H[6];
+    }
+    r /= 255; g /= 255; b /= 255;
+    let cmin = Math.min(r,g,b),
+        cmax = Math.max(r,g,b),
+        delta = cmax - cmin,
+        h = 0, s = 0, l = 0;
+
+    if (delta == 0) h = 0;
+    else if (cmax == r) h = ((g - b) / delta) % 6;
+    else if (cmax == g) h = (b - r) / delta + 2;
+    else h = (r - g) / delta + 4;
+
+    h = Math.round(h * 60);
+    if (h < 0) h += 360;
+
+    l = (cmax + cmin) / 2;
+    s = delta == 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+    s = +(s * 100).toFixed(1);
+    l = +(l * 100).toFixed(1);
+
+    return {h, s, l};
+}
+
+function HSLToHex(h, s, l) {
+  s /= 100;
+  l /= 100;
+  let c = (1 - Math.abs(2 * l - 1)) * s,
+      x = c * (1 - Math.abs((h / 60) % 2 - 1)),
+      m = l - c/2,
+      r = 0, g = 0, b = 0;
+
+  if (0 <= h && h < 60) { r = c; g = x; b = 0; }
+  else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
+  else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
+  else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
+  else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
+  else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
+
+  r = Math.round((r + m) * 255).toString(16);
+  g = Math.round((g + m) * 255).toString(16);
+  b = Math.round((b + m) * 255).toString(16);
+
+  if (r.length == 1) r = "0" + r;
+  if (g.length == 1) g = "0" + g;
+  if (b.length == 1) b = "0" + b;
+
+  return "#" + r + g + b;
+}
+
+function getColorVariants(colorStr) {
+    if (!colorStr) return COLOR_MAP.indigo;
+    if (COLOR_MAP[colorStr]) return COLOR_MAP[colorStr];
+    if (colorStr.startsWith('#')) {
+        let hsl = hexToHSL(colorStr);
+        let bg = colorStr;
+        let light = HSLToHex(hsl.h, Math.max(0, hsl.s - 5), Math.min(100, hsl.l + 12));
+        let dark = HSLToHex(hsl.h, hsl.s, Math.max(0, hsl.l - 20));
+        return { bg, light, dark };
+    }
+    return COLOR_MAP.indigo;
+}
+
+function createCardHtml(net, i) {
+    var c = getColorVariants(net.color);
+    var ssid = esc(net.ssid);
+    var pass = esc(net.password);
+    var type = esc(net.type || 'WPA');
+    var label = esc(net.label || '');
+    var qrData = encodeURIComponent('WIFI:S:' + net.ssid + ';T:' + (net.type||'WPA') + ';P:' + net.password + ';;');
+
+    return '<div class="wifi-card" data-index="' + i + '">' +
+      '<div class="card-header" style="background:linear-gradient(135deg,' + c.bg + ',' + c.dark + ')">' +
+        '<div class="blob blob1" style="background:' + c.light + '"></div>' +
+        '<div class="blob blob2" style="background:' + c.light + '"></div>' +
+        '<div class="inner">' +
+          '<div class="wifi-icon">&#128246;</div>' +
+          (label ? '<div class="net-label">' + label + '</div>' : '') +
+          '<h2>' + ssid + '</h2>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card-body">' +
+        '<div class="qr-wrap"><div class="qr-frame">' +
+          '<img src="https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=' + qrData + '" alt="WiFi QR Code" loading="lazy">' +
+        '</div></div>' +
+        '<div class="fields-wrap">' +
+          '<div class="field"><label>Network Name (SSID)</label>' +
+            '<div class="field-row">' +
+              '<span class="field-val">' + ssid + '</span>' +
+              '<button class="copy-btn" onclick="copyText(\'' + jsEsc(net.ssid) + '\')" title="Copy Network Name"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="field"><label>WiFi Password</label>' +
+            '<div class="field-row">' +
+              '<span class="field-val">' + pass + '</span>' +
+              '<button class="copy-btn" onclick="copyText(\'' + jsEsc(net.password) + '\')" title="Copy Password"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="type-badge">&#128274; ' + type + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="card-footer">' +
+        '<button class="btn-share" style="background:' + c.bg + '" ' +
+          'onclick="copyText(\'Network: ' + jsEsc(net.ssid) + '\\nPassword: ' + jsEsc(net.password) + '\')" title="Copy Info">' +
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>' +
+          'Copy WiFi Info' +
+        '</button>' +
+        '<button class="btn-print-card" onclick="openPrintModal(' + i + ')" title="Print WiFi Card">' +
+          '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>' +
+          'Print Card' +
+        '</button>' +
+      '</div>' +
+    '</div>';
+}
+
+function buildSlides(networks) {
+    var track = document.getElementById('track');
+    var dotsEl = document.getElementById('dots');
+    track.innerHTML = '';
+    dotsEl.innerHTML = '';
+
+    networks.forEach(function(net, i) {
+        var c = getColorVariants(net.color);
+        var slide = document.createElement('div');
+        slide.className = 'slide' + (i === 0 ? ' active' : '');
+        slide.dataset.index = i;
+        slide.dataset.accent = c.bg;
+        slide.innerHTML = createCardHtml(net, i);
+        track.appendChild(slide);
+
+        var dot = document.createElement('div');
+        dot.className = 'dot' + (i === 0 ? ' active' : '');
+        dot.setAttribute('onclick', 'goTo(' + i + ')');
+        dotsEl.appendChild(dot);
+    });
+}
+
+// ── Carousel logic ─────────────────────────────────────────────────────
+var current = 0, slideW = 0, total = 0;
+var track, slides, dotEls, btnPrev, btnNext, counter;
+
+function initCarousel(n) {
+    total   = n;
+    track   = document.getElementById('track');
+    slides  = Array.prototype.slice.call(track.querySelectorAll('.slide'));
+    dotEls  = Array.prototype.slice.call(document.getElementById('dots').querySelectorAll('.dot'));
+    btnPrev = document.getElementById('btnPrev');
+    btnNext = document.getElementById('btnNext');
+    counter = document.getElementById('counter');
+
+    if (total > 1) {
+        document.getElementById('swipeHint').style.display = '';
+    }
+    document.getElementById('bottomNav').style.display = total > 0 ? '' : 'none';
+    btnNext.disabled = total <= 1;
+
+    measure();
+    window.addEventListener('resize', measure);
+    attachEvents();
+}
+
+function measure() {
+    slideW = window.innerWidth;
+    track.style.width = (slideW * total) + 'px';
+    slides.forEach(function(s){ s.style.width = slideW + 'px'; });
+    render(false);
+}
+
+function accents() {
+    return slides.map(function(s){ return s.dataset.accent; });
+}
+
+function render(animate) {
+    var ac = accents();
+    if (animate === false) track.style.transition = 'none';
+    else                   track.style.transition = 'transform .38s cubic-bezier(.4,0,.2,1)';
+
+    track.style.transform = 'translateX(' + (-current * slideW) + 'px)';
+
+    slides.forEach(function(s, i){ s.classList.toggle('active', i === current); });
+    dotEls.forEach(function(d, i){
+        d.classList.toggle('active', i === current);
+        d.style.background = i === current ? ac[current] : '';
+    });
+    btnPrev.disabled = current === 0;
+    btnNext.disabled = current === total - 1;
+    counter.textContent = (current + 1) + ' / ' + total;
+    document.body.style.background =
+        'linear-gradient(160deg,' + ac[current] + '1a 0%,#f0f4f8 50%)';
+
+    if (animate === false) {
+        requestAnimationFrame(function(){ track.style.transition = ''; });
+    }
+}
+
+window.go = function(dir) {
+    var n = current + dir;
+    if (n < 0 || n >= total) return;
+    current = n; render();
+};
+window.goTo = function(i) { current = i; render(); };
+
+function attachEvents() {
+    var startX = 0, startY = 0, diffX = 0, dragging = false, horiz = null;
+
+    function dragStart(x, y) {
+        startX = x; startY = y; diffX = 0;
+        dragging = true; horiz = null;
+        track.style.transition = 'none';
+    }
+    function dragMove(x, y) {
+        if (!dragging) return;
+        var dx = x - startX, dy = y - startY;
+        if (horiz === null && (Math.abs(dx) > 6 || Math.abs(dy) > 6))
+            horiz = Math.abs(dx) >= Math.abs(dy);
+        if (!horiz) return;
+        diffX = dx;
+        var base = -current * slideW;
+        var clamped = (current === 0 && dx > 0) || (current === total - 1 && dx < 0) ? dx * .22 : dx;
+        track.style.transform = 'translateX(' + (base + clamped) + 'px)';
+    }
+    function dragEnd() {
+        if (!dragging) return;
+        dragging = false;
+        if (!horiz) { render(); return; }
+        if (diffX < -52 && current < total - 1) current++;
+        else if (diffX > 52 && current > 0)      current--;
+        render();
+    }
+
+    track.addEventListener('touchstart', function(e){ dragStart(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+    track.addEventListener('touchmove',  function(e){ dragMove(e.touches[0].clientX, e.touches[0].clientY); if (horiz) e.preventDefault(); }, { passive: false });
+    track.addEventListener('touchend', dragEnd);
+    track.addEventListener('mousedown', function(e){ e.preventDefault(); dragStart(e.clientX, e.clientY); });
+    window.addEventListener('mousemove', function(e){ if (dragging) dragMove(e.clientX, e.clientY); });
+    window.addEventListener('mouseup', dragEnd);
+
+    document.addEventListener('keydown', function(e){
+        var modal = document.getElementById('printModal');
+        if (modal && modal.style.display === 'flex') {
+            if (e.key === 'Escape') closePrintModal();
+            return;
+        }
+        if (e.key === 'ArrowLeft')  go(-1);
+        if (e.key === 'ArrowRight') go(1);
+    });
+
+    var wheelCooldown = false;
+    window.addEventListener('wheel', function(e){
+        if (wheelCooldown) return;
+        if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) return;
+        
+        var delta = e.deltaX;
+        if (Math.abs(delta) < 8) return;
+        go(delta > 0 ? 1 : -1);
+        wheelCooldown = true;
+        setTimeout(function(){ wheelCooldown = false; }, 500);
+    }, { passive: true });
+}
+
+// ── Copy ────────────────────────────────────────────────────────────────
+window.copyText = function(text) {
+    navigator.clipboard.writeText(text).catch(function(){
+        var el = document.createElement('textarea');
+        el.value = text; document.body.appendChild(el);
+        el.select(); document.execCommand('copy');
+        document.body.removeChild(el);
+    });
+    var t = document.getElementById('toast');
+    t.classList.add('show');
+    clearTimeout(t._tid);
+    t._tid = setTimeout(function(){ t.classList.remove('show'); }, 2000);
+};
+
+// ── Print Modal & Logic ────────────────────────────────────────────────
+window.NETWORKS = [];
+
+function openPrintModal(idx) {
+    if (typeof idx === 'number' && idx >= 0 && idx < total) {
+        goTo(idx);
+    }
+    var currentNet = (window.NETWORKS && window.NETWORKS[current]) ? window.NETWORKS[current] : { ssid: 'Current Network' };
+    var totalCount = window.NETWORKS ? window.NETWORKS.length : 1;
+
+    var curNameEl = document.getElementById('printCurrentName');
+    var allCountEl = document.getElementById('printAllCount');
+    if (curNameEl) curNameEl.textContent = 'Print only: ' + (currentNet.ssid || 'Current Network');
+    if (allCountEl) allCountEl.textContent = 'Batch print all ' + totalCount + ' cards';
+
+    var gridOpt = document.getElementById('optLayoutGrid');
+    var gridRadio = gridOpt ? gridOpt.querySelector('input') : null;
+    if (totalCount <= 1) {
+        if (gridOpt) gridOpt.classList.add('disabled');
+        if (gridRadio) {
+            gridRadio.disabled = true;
+            if (gridRadio.checked) {
+                var std = document.querySelector('input[name="printLayout"][value="standard"]');
+                if (std) std.checked = true;
+            }
+        }
+    } else {
+        if (gridOpt) gridOpt.classList.remove('disabled');
+        if (gridRadio) gridRadio.disabled = false;
+    }
+
+    updatePrintModalState();
+    var modal = document.getElementById('printModal');
+    if (modal) modal.style.display = 'flex';
+}
+window.openPrintModal = openPrintModal;
+
+function closePrintModal() {
+    var modal = document.getElementById('printModal');
+    if (modal) modal.style.display = 'none';
+}
+window.closePrintModal = closePrintModal;
+
+function updatePrintModalState() {
+    var scopeRadio = document.querySelector('input[name="printScope"]:checked');
+    var scope = scopeRadio ? scopeRadio.value : 'current';
+    var gridOpt = document.getElementById('optLayoutGrid');
+    var gridRadio = gridOpt ? gridOpt.querySelector('input') : null;
+
+    if (scope === 'current') {
+        if (gridOpt) gridOpt.classList.add('disabled');
+        if (gridRadio) {
+            gridRadio.disabled = true;
+            if (gridRadio.checked) {
+                var std = document.querySelector('input[name="printLayout"][value="standard"]');
+                if (std) std.checked = true;
+            }
+        }
+    } else {
+        if (window.NETWORKS && window.NETWORKS.length > 1) {
+            if (gridOpt) gridOpt.classList.remove('disabled');
+            if (gridRadio) gridRadio.disabled = false;
+        }
+    }
+}
+window.updatePrintModalState = updatePrintModalState;
+
+function cleanupPrint() {
+    document.body.classList.remove(
+        'printing',
+        'print-scope-all',
+        'print-scope-current',
+        'print-layout-standard',
+        'print-layout-grid',
+        'print-layout-tent',
+        'print-style-color',
+        'print-style-bw',
+        'show-cut-guides'
+    );
+    var tentArea = document.getElementById('tentPrintArea');
+    if (tentArea) tentArea.innerHTML = '';
+}
+window.cleanupPrint = cleanupPrint;
+window.addEventListener('afterprint', cleanupPrint);
+
+function startPrint() {
+    var scopeRadio = document.querySelector('input[name="printScope"]:checked');
+    var layoutRadio = document.querySelector('input[name="printLayout"]:checked');
+    var styleRadio = document.querySelector('input[name="printStyle"]:checked');
+
+    var scope = scopeRadio ? scopeRadio.value : 'current';
+    var layout = layoutRadio ? layoutRadio.value : 'standard';
+    var style = styleRadio ? styleRadio.value : 'color';
+    var cutGuides = document.getElementById('chkCutGuides').checked;
+
+    cleanupPrint();
+
+    document.body.classList.add('printing');
+    document.body.classList.add(scope === 'all' ? 'print-scope-all' : 'print-scope-current');
+    document.body.classList.add('print-layout-' + layout);
+    document.body.classList.add('print-style-' + style);
+    if (cutGuides) document.body.classList.add('show-cut-guides');
+
+    if (layout === 'tent') {
+        var tentArea = document.getElementById('tentPrintArea');
+        tentArea.innerHTML = '';
+        var targets = scope === 'all' ? window.NETWORKS : [window.NETWORKS[current]];
+        targets.forEach(function(net, idx) {
+            var cardMarkup = createCardHtml(net, idx);
+            var sheet = document.createElement('div');
+            sheet.className = 'tent-sheet';
+            sheet.innerHTML =
+                '<div class="tent-card tent-card-top">' + cardMarkup + '</div>' +
+                '<div class="tent-fold-divider"><span>✂ Fold along dashed line · A-frame desk tent</span></div>' +
+                '<div class="tent-card tent-card-bottom">' + cardMarkup + '</div>';
+            tentArea.appendChild(sheet);
+        });
+    }
+
+    closePrintModal();
+
+    setTimeout(function() {
+        window.print();
+    }, 60);
+}
+window.startPrint = startPrint;
+
+// ── Boot: fetch data.json ───────────────────────────────────────────────
+fetch('data.json')
+    .then(function(r){ return r.json(); })
+    .then(function(networks) {
+        if (!Array.isArray(networks) || networks.length === 0) {
+            document.getElementById('track').innerHTML =
+                '<div class="empty-state" style="width:100vw">' +
+                  '<div class="icon">&#128225;</div>' +
+                  '<h2>No Networks Found</h2><p>Please edit data.json or add networks via admin dashboard</p>' +
+                '</div>';
+            return;
+        }
+        window.NETWORKS = networks;
+        buildSlides(networks);
+        initCarousel(networks.length);
+    })
+    .catch(function() {
+        document.getElementById('track').innerHTML =
+            '<div class="empty-state" style="width:100vw">' +
+              '<div class="icon">&#10060;</div>' +
+              '<h2>Failed to Load</h2><p>Could not find data.json. Please verify file exists.</p>' +
+            '</div>';
+    });
+</script>
+</body>
+</html>
