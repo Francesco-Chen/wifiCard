@@ -4,6 +4,18 @@
 
 Supports standard single cards, 2×2 multi-card grids, and symmetrical foldable A-frame desk tents. Guests can simply point their phone camera or WeChat scanner at the QR code to join your Wi-Fi network instantly without typing passwords.
 
+<p align="center">
+  <img src="screenshots/preview-card.png" alt="WiFi Card Preview" width="800">
+</p>
+
+---
+
+## 📸 Screenshots & Previews
+
+| 📱 WiFi Card View | 🖨️ Print Layout Settings | ⚙️ Admin Dashboard |
+| :---: | :---: | :---: |
+| <img src="screenshots/preview-card.png" width="300" alt="Card View"> | <img src="screenshots/preview-print-modal.png" width="300" alt="Print Settings"> | <img src="screenshots/preview-admin.png" width="300" alt="Admin Dashboard"> |
+
 ---
 
 ## ✨ Features
